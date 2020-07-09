@@ -1,6 +1,8 @@
 import os.path as osp
 
-def make_datapath_list(rootpath):
+
+
+def make_datapath_list(rootpath): #chứa các đường link dẫn đến các file ảnh và các file s
     original_image_template = osp.join(rootpath, 'JPEGImages', '%s.jpg')
     annotation_image_template = osp.join(rootpath, 'SegmentationClass', '%s.png')
 
@@ -32,6 +34,25 @@ def make_datapath_list(rootpath):
         val_anno_list.append(anno_path)
 
     return train_img_list, train_anno_list, val_img_list, val_anno_list
+
+class DataTransform():
+    def __init__(self, input_size, color_mean, color_std):
+        self.data_transform = {
+            "train" : Compose([
+                Scale(scale=[0.5, 1.5]),
+                RandomRotation(angle =[-10, 10]),
+                RandomMirror(),
+                Reszie(input_size),
+                Normalize_Tensor(color_mean, color_std)
+            ]),
+            "val" : Compose([
+                Reszie(input_size),
+                Normalize_Tensor(color_mean, color_std)
+            ])
+        }
+    def __call__(self, phase, img, anno_class_img):
+        return self.data_transform[phase](img, anno_class_img)
+
 
 if __name__ == "__main__" :
 
