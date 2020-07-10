@@ -1,5 +1,5 @@
 import os.path as osp
-
+from utils.augmentation import Compose, Scale, RandomMirror, RandomRotation, Resize, Normalize_Tensor
 
 
 def make_datapath_list(rootpath): #chứa các đường link dẫn đến các file ảnh và các file s
@@ -42,11 +42,11 @@ class DataTransform():
                 Scale(scale=[0.5, 1.5]),
                 RandomRotation(angle =[-10, 10]),
                 RandomMirror(),
-                Reszie(input_size),
+                Resize(input_size),
                 Normalize_Tensor(color_mean, color_std)
             ]),
             "val" : Compose([
-                Reszie(input_size),
+                Resize(input_size),
                 Normalize_Tensor(color_mean, color_std)
             ])
         }
