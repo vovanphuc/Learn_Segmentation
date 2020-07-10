@@ -1,6 +1,6 @@
 import os.path as osp
-from utils.augmentation import Compose, Scale, RandomMirror, RandomRotation, Resize, Normalize_Tensor
-
+from utils.augmentation import Compose, Scale, RandomMirror, RandomRotation, Resize, Normalize_Tensor, Image
+import torch.utils.data as data
 
 def make_datapath_list(rootpath): #chứa các đường link dẫn đến các file ảnh và các file s
     original_image_template = osp.join(rootpath, 'JPEGImages', '%s.jpg')
@@ -53,16 +53,58 @@ class DataTransform():
     def __call__(self, phase, img, anno_class_img):
         return self.data_transform[phase](img, anno_class_img)
 
+class MyDataset(data.Dataset):
+    def __init__(self, img_list, anno_list, phase, transform):
+        self.img_list = img_list
+        self.anno_list = anno_list
+        self.phase = phase
+        self.transform = transform
+
+    def __len__(self):
+        return  len(self.img_list)
+
+    def __getitem__(self, index):
+        img, anno_class_img = self.pull_item(index)
+        return img, anno_class_img
+
+    def pull_item(self, index):
+        img_file_path = self.img_list[index]
+        img = Image.open(img_file_path)
+
+        anno_file_path = self.anno_list[index]
+        anno_class_img = Image.open(anno_file_path) # -> (h, w, channel(RGB))
+
+        img, anno_class_img = self.transform(self.phase, img, anno_class_img)
+
+        return img, anno_class_img
 
 if __name__ == "__main__" :
 
     rootpath = './data/VOC/VOC2012/'
     train_img_list, train_anno_list, val_img_list, val_anno_list = make_datapath_list(rootpath = rootpath)
 
-    print(len(train_img_list))
-    print(len(val_img_list))
+# mean=(0,485, 0,456, 0,406) and std=(0,229, 0,224, 0,225)
+    color_mean = (0.485, 0.456, 0.406)
+    color_std = (0.229, 0.224, 0.225)
 
-    print(train_img_list[0]) # path
-    print(train_anno_list[0])
+    train_dataset = MyDataset(img_list=train_img_list, anno_list= train_anno_list, phase='train',
+                              transform=DataTransform(input_size=475, color_mean=color_mean, color_std=color_std))
 
+    val_dataset = MyDataset(img_list=val_img_list, anno_list= val_anno_list, phase='val',
+                              transform=DataTransform(input_size=475, color_mean=color_mean, color_std=color_std))
 
+    batch_size = 10
+
+    train_dataloader = data.DataLoader(train_dataset, batch_size, shuffle= True)
+    val_dataloader = data.DataLoader(val_dataset, batch_size, shuffle= False)
+
+    dataloader_dict = {
+        "train" : train_dataset,
+        "val" : val_dataset
+    }
+
+    batch_iterator = iter(dataloader_dict["train"])
+    images, anno_class_images = next(batch_iterator)
+
+    print(images.size())
+    print(anno_class_images.size())
